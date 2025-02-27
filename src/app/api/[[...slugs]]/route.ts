@@ -160,17 +160,34 @@ const app = new Elysia({ prefix: "/api", aot: false })
   })
   // Método POST para transferir tokens a un vault
   .post("/ft_transfer_call", ({ body }) => {
+    // Validar que el cuerpo de la solicitud tenga el campo "amount"
+    if (!body || typeof body !== "object" || !("amount" in body)) {
+      return { error: "Invalid request body. 'amount' is required." };
+    }
+  
     const { amount } = body as { amount: number | string };
+  
+    // Validar que el campo "amount" no esté vacío
+    if (amount === undefined || amount === null || amount === "") {
+      return { error: "The 'amount' field cannot be empty." };
+    }
+  
+    // Convertir el monto a string si es un número
     const parsedAmount = typeof amount === "number" ? amount.toString() : amount;
-
+  
+    // Validar que el monto sea un número válido
     if (!/^\d+(\.\d+)?$/.test(parsedAmount)) {
       return { error: "Invalid amount provided. It should be a valid positive number." };
     }
-
+  
+    // Convertir el monto a yoctoHAT
     const [integerPart, decimalPart = ""] = parsedAmount.split(".");
     const fullAmount = integerPart + decimalPart.padEnd(18, "0");
     const yoctoAmount = BigInt(fullAmount).toString();
-
+  
+    console.log("yoctoAmount", yoctoAmount);
+  
+    // Devolver la transacción
     return {
       type: "FunctionCall",
       params: {

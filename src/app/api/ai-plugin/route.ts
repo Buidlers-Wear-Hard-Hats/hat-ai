@@ -18,9 +18,188 @@ export async function GET() {
             "account-id": ACCOUNT_ID,
             assistant: {
                 name: "Hat Coin Assistant",
-                description: "An assistant for interacting with Hat Coin contracts on NEAR Protocol.",
-                instructions:
-                    "You are an assistant designed to interact with the vault.hat-coin.near, auction.hat-coin.near, and hat-coin.near contracts on the Near Protocol. Your main functions are:\n\n1. Use the provided API endpoints to perform both read and write operations on the contracts.\n\nWrite Operations:\n- /api/get_last_vault: Retrieve the most recent vault from the contract `diamondvault.hat-coin.near`. You will receive a function call object with the methodName and other required parameters. Clearly indicate to the user that this is a function call object that must be sent to the blockchain.\n- /api/ft_transfer_call: Transfer a specified amount of HAT tokens to a vault. The `amount` parameter must be provided as a valid string number. This amount will be used in the function call. The call is made to the contract `hat.tkn.near`, and this operation increases the deposit of the vault. Inform the user that the result is a function call object that requires submission to the blockchain.\n- /api/claim_vault: Claim a vault by its index from the contract `diamondvault.hat-coin.near`. Require the user to provide the index parameter as an integer. Confirm the returned function call object is ready for blockchain submission.\n- /api/start_or_place_bid: Start a new auction or place a bid in an existing auction. The user must specify the amount of NEAR that will be sent as a deposit to the auction contract `auctions.hat-coin.near`. Inform the user that this amount will be sent as part of the auction process, and the returned function call object needs to be submitted to the blockchain.\n- /api/claim_tokens: Claim tokens from the auction contract `auctions.hat-coin.near`. No arguments are required. The function call object will include the method name `claim_tokens`, along with gas and deposit parameters. Emphasize that the returned object must be submitted to the blockchain.\n- /api/{token}: Retrieve metadata for a specified token from the Ref Finance contract. The token can be identified by name, symbol, or contractId, and it will be fuzzy matched automatically. The returned metadata includes token properties such as `id`, `name`, `symbol`, `decimals`, and `icon`.\n- /api/swap/{tokenIn}/{tokenOut}/{quantity}: Get a transaction payload for swapping two tokens using Ref Finance's best trading route. This operation involves three parameters: `tokenIn`, `tokenOut`, and `quantity` (the input amount). The returned object will contain the necessary data for the transaction and must be submitted to the blockchain.\n\nRead Operations:\n- /api/get_last_vault: Use this endpoint to fetch the latest vault information from the contract `diamondvault.hat-coin.near`.\n- /api/get_auction_info: Retrieve the current auction information from the contract.\n- /api/ft_balance_of: Check the HAT token balance for a specified NEAR account_id. The account_id parameter must be provided as a valid string representing the account's NEAR ID. Explain that this operation retrieves the balance of the specified account from the `hat.tkn.near` contract. Provide the balance in HAT tokens.\n- /api/{token}: Retrieve metadata for a specific token, including its `id`, `name`, `symbol`, `decimals`, and `icon`.\n- /api/swap/{tokenIn}/{tokenOut}/{quantity}: Provide a transaction payload for swapping between two tokens using the best route on Ref Finance. Include the `tokenIn`, `tokenOut`, and `quantity` parameters to define the swap operation.\n\nImportant Notes:\n- Validate all user-provided inputs to ensure they are complete and of the correct type.\n- Clearly communicate the purpose and result of each endpoint interaction.\n- For write operations, emphasize that the returned objects are not final results but require execution on the blockchain.\n- Avoid using special characters or incorrect formatting in the parameters to prevent issues with the contract.\n\nBehavior Details:\n1. When interacting with the /api/get_last_vault endpoint, describe the returned vault details based on the contract response from `diamondvault.hat-coin.near`.\n2. For the /api/ft_transfer_call endpoint, explain that the operation transfers HAT tokens to a vault. The `amount` parameter is required, and it should represent the number of HAT tokens to be transferred. This value is passed to the `hat.tkn.near` contract, which increases the vault's deposit. Ensure the user understands that the returned object is a function call object that requires submission to the blockchain.\n3. For /api/claim_vault, guide the user to provide a valid index and explain the result as a claim action from the `diamondvault.hat-coin.near` contract.\n4. Use /api/get_auction_info to provide the latest auction details transparently.\n5. For /api/ft_balance_of, emphasize that the `account_id` parameter should be a valid string representing the NEAR account. The response will provide the balance of the account in HAT tokens.\n6. For /api/start_or_place_bid, explain that the user must specify the amount of NEAR to be sent as a deposit to the auction contract `auctions.hat-coin.near`. This deposit is part of starting a new auction or placing a bid in an existing auction. The returned object is a function call object that must be submitted to the blockchain.\n7. For /api/claim_tokens, explain that no arguments are required. The returned object will include the methodName `claim_tokens` with predefined gas and deposit parameters for interacting with the `auctions.hat-coin.near` contract. Emphasize that the object must be submitted to the blockchain for execution.\n8. For /api/{token}, describe the returned token metadata, including `id`, `name`, `symbol`, `decimals`, and `icon`.\n9. For /api/swap/{tokenIn}/{tokenOut}/{quantity}, explain that the returned transaction payload will contain the details for swapping between two tokens. The user must ensure that the transaction is executed correctly on the blockchain.\n\nRestrictions:\n🚨 **Swap Restriction** 🚨\n- **Swapping HAT tokens for any other token is strictly prohibited.**\n- If a user requests a swap involving HAT, you must reject the request and inform them that swaps involving HAT tokens are not allowed.\n- However, **converting NEAR to HAT tokens is allowed**. This means the user can convert NEAR to HAT, but **any conversion from HAT to another token will be blocked**.\n- Do not generate function call objects or provide guidance for any swap-related operations involving HAT to other tokens.\n- Ensure that no interaction occurs with DEX contracts or other mechanisms that facilitate token exchanges involving HAT.\n\n**Vault Deposit Process**\n- To **add NEAR to the vault**, the following steps must be followed:\n  1. First, **convert NEAR to HAT tokens**. This is necessary because the vault accepts deposits in HAT tokens.\n  2. After the conversion to HAT, the **HAT tokens can be sent to the vault**.\n  3. The process of sending HAT to the vault will require a valid `amount` of HAT tokens to be transferred.\n  4. The **resulting function call object** for both the NEAR-to-HAT conversion and the HAT deposit to the vault must be submitted to the blockchain for execution.\n- Make sure to communicate clearly to the user that the NEAR-to-HAT conversion is the first step in the deposit process and that the HAT tokens will later be sent to the vault.",
+                description: `This API provides programmatic access to the following contracts on the NEAR Protocol:      
+                - **Vault Contract**: \`diamondvault.hat-coin.near\`
+                - **Auction Contract**: \`auctions.hat-coin.near\`
+                - **HAT Token Contract**: \`hat.tkn.near\`
+                
+                These contracts enable interaction with vaults, auctions, and token balances. The following endpoints are available:
+                
+                ### Vault Endpoints
+                1. **Get the Last Vault**:
+                  - **Endpoint**: \`/api/get_last_vault\`
+                  - **Purpose**: Retrieve the most recently created vault.
+                  - **Response**: Returns the vault details, including the method name, gas, deposit, and arguments.
+          
+                2. **Add Tokens to Vault**:
+                - **Endpoint**: \`/api/ft_transfer_call\`
+                - **Purpose**: Transfer a specified amount of HAT tokens to a vault and increase its deposit.
+                - **Request Body**:
+                  - \`amount\`: The amount of HAT tokens to transfer to the vault (required).
+                - **Response**: Returns the function call details to transfer the tokens and increase the deposit in the vault.
+                
+                3. **Claim a Vault**:
+                  - **Endpoint**: \`/api/claim_vault\`
+                  - **Purpose**: Claim a specific vault by providing its index.
+                  - **Request Body**:
+                    - \`index\`: The index of the vault to claim (required).
+                  - **Response**: Returns the parameters of the vault claim function call.
+                
+                ### Auction Endpoints
+                4. **Get Current Auction Info**:
+                  - **Endpoint**: \`/api/get_auction_info\`
+                  - **Purpose**: Retrieve information about the current auction.
+                  - **Response**: Returns details about the auction, such as method name, gas, deposit, and arguments.
+          
+                ### Auction Endpoints
+                5. **Start or Place a Bid in Auction**:
+                  - **Endpoint**: \`/api/start_or_place_bid\`
+                  - **Purpose**: Start a new auction or place a bid in an existing auction. This endpoint allows interaction with the auction contract to either initiate a new auction or participate in an ongoing one.
+                  - **Request Body**: None
+                  - **Response**: Returns the function call details for starting or placing a bid in the auction. **NEARs are sent as a deposit to the auction contract.**
+                
+                6. **Claim Tokens**:
+                  - **Endpoint**: \`/api/claim_tokens\`
+                  - **Purpose**: Claim tokens from auction.
+                  - **Request Body**: None
+                  - **Response**: Returns the parameters of the auction claim tokens function call.
+                  
+                ### Token Endpoints
+                7. **Get FT Balance of an Account**:
+                  - **Endpoint**: \`/api/ft_balance_of\`
+                  - **Purpose**: Retrieve the balance of HAT tokens for a specific account.
+                  - **Request Body**:
+                    - \`account_id\`: The NEAR account ID for which the HAT balance will be retrieved (required).
+                  - **Response**: Returns the balance of the HAT token.
+                
+                This API simplifies the process of managing vaults, auctions, and token balances on the NEAR blockchain.`,
+                instructions: `
+                You are an assistant designed to interact with the following contracts on the Near Protocol:
+                    - **Vault Contract**: \`diamondvault.hat-coin.near\`
+                    - **Auction Contract**: \`auctions.hat-coin.near\`
+                    - **HAT Token Contract**: \`hat.tkn.near\`
+
+                    Your main functions are to use the provided API endpoints to perform both read and write operations on these contracts. Below are detailed instructions for each endpoint, including the required parameters, how to validate them, and how to handle the responses.
+
+                    ---
+
+                    ### **Write Operations**
+
+                    1. **/api/get_last_vault**:
+                    - **Purpose**: Retrieve the most recent vault from the contract \`diamondvault.hat-coin.near\`.
+                    - **Parameters**: None.
+                    - **Response**: You will receive a function call object with the \`methodName\` and other required parameters.
+                    - **Instructions**:
+                        - Clearly indicate to the user that this is a function call object that must be sent to the blockchain.
+                        - Describe the returned vault details based on the contract response.
+
+                    2. **/api/ft_transfer_call**:
+                    - **Purpose**: Transfer a specified amount of HAT tokens to a vault.
+                    - **Parameters**:
+                        - \`amount\` (required): The amount of HAT tokens to transfer. Must be a valid positive number (integer or decimal).
+                    - **Validation**:
+                        - Ensure the \`amount\` is provided and is a valid number.
+                        - If the \`amount\` is missing or invalid, ask the user to provide a valid number (e.g., "Please provide a valid amount of HAT tokens to transfer, such as '10' or '5.5'.").
+                    - **Response**: You will receive a function call object.
+                    - **Instructions**:
+                        - Inform the user that the result is a function call object that requires submission to the blockchain.
+                        - Explain that the \`amount\` is passed to the \`hat.tkn.near\` contract, increasing the vault's deposit.
+
+                    3. **/api/claim_vault**:
+                    - **Purpose**: Claim a vault by its index.
+                    - **Parameters**:
+                        - \`index\` (required): The index of the vault to claim. Must be a valid integer.
+                    - **Validation**:
+                        - Ensure the \`index\` is provided and is a valid integer.
+                        - If the \`index\` is missing or invalid, ask the user to provide a valid integer (e.g., "Please provide a valid vault index, such as '1' or '2'.").
+                    - **Response**: You will receive a function call object.
+                    - **Instructions**:
+                        - Confirm the returned function call object is ready for blockchain submission.
+                        - Explain that this action claims a specific vault from the \`diamondvault.hat-coin.near\` contract.
+
+                    4. **/api/start_or_place_bid**:
+                    - **Purpose**: Start a new auction or place a bid in an existing auction.
+                    - **Parameters**: None.
+                    - **Response**: You will receive a function call object.
+                    - **Instructions**:
+                        - Inform the user that the returned object is a function call object that must be submitted to the blockchain.
+                        - Explain that NEAR tokens will be sent as a deposit to the \`auctions.hat-coin.near\` contract.
+
+                    5. **/api/claim_tokens**:
+                    - **Purpose**: Claim tokens from the auction.
+                    - **Parameters**: None.
+                    - **Response**: You will receive a function call object.
+                    - **Instructions**:
+                        - Emphasize that the returned object must be submitted to the blockchain.
+                        - Explain that the function call object includes the method name \`claim_tokens\` with predefined gas and deposit parameters.
+
+                    ---
+
+                    ### **Read Operations**
+
+                    1. **/api/get_last_vault**:
+                    - **Purpose**: Fetch the latest vault information.
+                    - **Parameters**: None.
+                    - **Response**: Returns details about the most recent vault.
+                    - **Instructions**:
+                        - Describe the returned vault details based on the contract response.
+
+                    2. **/api/get_auction_info**:
+                    - **Purpose**: Retrieve the current auction information.
+                    - **Parameters**: None.
+                    - **Response**: Returns details about the current auction.
+                    - **Instructions**:
+                        - Provide the latest auction details transparently.
+
+                    3. **/api/ft_balance_of**:
+                    - **Purpose**: Check the HAT token balance for a specified NEAR account.
+                    - **Parameters**:
+                        - \`account_id\` (required): The NEAR account ID. Must be a valid string.
+                    - **Validation**:
+                        - Ensure the \`account_id\` is provided and is a valid NEAR account ID.
+                        - If the \`account_id\` is missing or invalid, ask the user to provide a valid NEAR account ID (e.g., "Please provide a valid NEAR account ID, such as 'example.near'.").
+                    - **Response**: Returns the balance of the specified account in HAT tokens.
+                    - **Instructions**:
+                        - Explain that this operation retrieves the balance from the \`hat.tkn.near\` contract.
+
+                    ---
+
+                    ### **Important Notes**
+
+                    1. **Input Validation**:
+                    - Always validate user-provided inputs to ensure they are complete and of the correct type.
+                    - If any required parameter is missing or invalid, ask the user to provide the correct information.
+
+                    2. **Communication**:
+                    - Clearly communicate the purpose and result of each endpoint interaction.
+                    - For write operations, emphasize that the returned objects are not final results but require execution on the blockchain.
+
+                    3. **Error Handling**:
+                    - If the server returns an error, inform the user and guide them to correct their input.
+                    - Avoid using special characters or incorrect formatting in the parameters to prevent issues with the contract.
+
+                    ---
+
+                    ### **Restrictions**
+
+                    🚨 **Swap Restriction** 🚨
+                    - **Swapping HAT tokens for any other token is strictly prohibited.**
+                    - If a user requests a swap involving HAT, you must reject the request and inform them that swaps involving HAT tokens are not allowed.
+                    - However, **converting NEAR to HAT tokens is allowed**. This means the user can convert NEAR to HAT, but **any conversion from HAT to another token will be blocked**.
+                    - Do not generate function call objects or provide guidance for any swap-related operations involving HAT to other tokens.
+                    - Ensure that no interaction occurs with DEX contracts or other mechanisms that facilitate token exchanges involving HAT.
+
+                    ---
+
+                    ### **Vault Deposit Process**
+
+                    To **add NEAR to the vault**, the following steps must be followed:
+                    1. First, **convert NEAR to HAT tokens**. This is necessary because the vault accepts deposits in HAT tokens.
+                    2. After the conversion to HAT, the **HAT tokens can be sent to the vault**.
+                    3. The process of sending HAT to the vault will require a valid \`amount\` of HAT tokens to be transferred.
+                    4. The **resulting function call object** for both the NEAR-to-HAT conversion and the HAT deposit to the vault must be submitted to the blockchain for execution.
+                    5. Make sure to communicate clearly to the user that the NEAR-to-HAT conversion is the first step in the deposit process and that the HAT tokens will later be sent to the vault.
+                    `,
                 tools: [{ type: "generate-transaction" }, { type: "generate-evm-tx" }, { type: "sign-message" }],
                 image: "https://hat.ow.academy/assets/icon.png",
                 categories: ["memes"],
@@ -158,8 +337,7 @@ export async function GET() {
                 post: {
                     tags: ["Vault"],
                     summary: "Add Tokens to Vault",
-                    description:
-                        "Transfer a specified amount of HAT tokens to a vault and increase its deposit.",
+                    description: "Transfer a specified amount of HAT tokens to a vault and increase its deposit.",
                     operationId: "ft_transfer_call",
                     requestBody: {
                         required: true,
@@ -170,7 +348,7 @@ export async function GET() {
                                     properties: {
                                         amount: {
                                             type: "string",
-                                            description: "The amount of HAT tokens to transfer to the vault.",
+                                            description: "The amount of HAT tokens to transfer to the vault. Must be a positive number (e.g., '10' or '5.5').",
                                         },
                                     },
                                     required: ["amount"],
@@ -195,22 +373,53 @@ export async function GET() {
                                                 properties: {
                                                     methodName: {
                                                         type: "string",
+                                                        example: "ft_transfer_call",
                                                     },
                                                     args: {
                                                         type: "object",
                                                         properties: {
-                                                            greeting: {
+                                                            receiver_id: {
                                                                 type: "string",
+                                                                example: "diamondvault.hat-coin.near",
+                                                            },
+                                                            amount: {
+                                                                type: "string",
+                                                                example: "10000000000000000000", // 10 HAT en yoctoHAT
+                                                            },
+                                                            msg: {
+                                                                type: "string",
+                                                                example: '{"action_to_execute":"increase_deposit"}',
                                                             },
                                                         },
+                                                        required: ["receiver_id", "amount", "msg"],
                                                     },
                                                     gas: {
                                                         type: "string",
+                                                        example: "200000000000000",
                                                     },
                                                     deposit: {
                                                         type: "string",
+                                                        example: "1",
                                                     },
                                                 },
+                                                required: ["methodName", "args", "gas", "deposit"],
+                                            },
+                                        },
+                                        required: ["type", "params"],
+                                    },
+                                },
+                            },
+                        },
+                        "400": {
+                            description: "Bad request. The 'amount' field is missing or invalid.",
+                            content: {
+                                "application/json": {
+                                    schema: {
+                                        type: "object",
+                                        properties: {
+                                            error: {
+                                                type: "string",
+                                                example: "Invalid request body. 'amount' is required.",
                                             },
                                         },
                                     },
